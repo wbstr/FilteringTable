@@ -8,13 +8,14 @@ import java.util.Random;
 
 import org.tepi.filtertable.FilterTable;
 import org.tepi.filtertable.FilterTreeTable;
+import org.tepi.filtertable.paged.PagedFilterControlConfig;
 import org.tepi.filtertable.paged.PagedFilterTable;
 
-import com.vaadin.annotations.PreserveOnRefresh;
 import com.vaadin.annotations.Title;
 import com.vaadin.data.Container;
 import com.vaadin.data.Property;
 import com.vaadin.data.Property.ValueChangeEvent;
+import com.vaadin.data.Property.ValueChangeListener;
 import com.vaadin.data.util.HierarchicalContainer;
 import com.vaadin.data.util.IndexedContainer;
 import com.vaadin.server.VaadinRequest;
@@ -39,7 +40,6 @@ import com.vaadin.ui.themes.Reindeer;
 
 @SuppressWarnings("serial")
 @Title("FilterTable Demo Application")
-@PreserveOnRefresh
 public class FilterTableDemoUI extends UI {
 
     /**
@@ -137,7 +137,7 @@ public class FilterTableDemoUI extends UI {
 
         return filterTable;
     }
-    
+
     private FilterTable buildFilterTable() {
         FilterTable filterTable = new FilterTable();
         filterTable.setSizeFull();
@@ -184,7 +184,8 @@ public class FilterTableDemoUI extends UI {
         mainLayout.setSpacing(true);
         mainLayout.setMargin(true);
         mainLayout.addComponent(pagedFilterTable);
-        mainLayout.addComponent(pagedFilterTable.createControls());
+        mainLayout.addComponent(pagedFilterTable
+                .createControls(new PagedFilterControlConfig()));
         mainLayout.addComponent(buildButtons(pagedFilterTable));
         return mainLayout;
     }
@@ -262,6 +263,7 @@ public class FilterTableDemoUI extends UI {
         filterTable.setContainerDataSource(buildHierarchicalContainer());
 
         filterTable.addGeneratedColumn("foo", new ColumnGenerator() {
+            @Override
             public Object generateCell(CustomTable source, Object itemId,
                     Object columnId) {
                 return "testing";
@@ -306,6 +308,46 @@ public class FilterTableDemoUI extends UI {
         buttonLayout.addComponent(showFilters);
         buttonLayout.setComponentAlignment(showFilters, Alignment.MIDDLE_RIGHT);
         buttonLayout.setExpandRatio(showFilters, 1);
+
+        CheckBox wrapFilters = new CheckBox("Wrap Filter Fields");
+        wrapFilters.setValue(relatedFilterTable.isWrapFilters());
+        wrapFilters.setImmediate(true);
+        wrapFilters.addValueChangeListener(new Property.ValueChangeListener() {
+
+            @Override
+            public void valueChange(ValueChangeEvent event) {
+                relatedFilterTable.setWrapFilters((Boolean) event.getProperty()
+                        .getValue());
+            }
+        });
+        buttonLayout.addComponent(wrapFilters);
+        buttonLayout.setComponentAlignment(wrapFilters, Alignment.MIDDLE_RIGHT);
+
+        final Button runNow = new Button("Filter now");
+        runNow.addClickListener(new Button.ClickListener() {
+
+            @Override
+            public void buttonClick(ClickEvent event) {
+                relatedFilterTable.runFilters();
+            }
+        });
+
+        CheckBox runOnDemand = new CheckBox("Filter lazily");
+        runOnDemand.setValue(relatedFilterTable.isFilterOnDemand());
+        runNow.setEnabled(relatedFilterTable.isFilterOnDemand());
+        runOnDemand.setImmediate(true);
+        runOnDemand.addValueChangeListener(new ValueChangeListener() {
+
+            @Override
+            public void valueChange(ValueChangeEvent event) {
+                boolean value = (Boolean) event.getProperty().getValue();
+                relatedFilterTable.setFilterOnDemand(value);
+                runNow.setEnabled(value);
+            }
+        });
+        buttonLayout.addComponent(runOnDemand);
+        buttonLayout.setComponentAlignment(runOnDemand, Alignment.MIDDLE_RIGHT);
+        buttonLayout.addComponent(runNow);
 
         Button setVal = new Button("Set the State filter to 'Processed'");
         setVal.addClickListener(new Button.ClickListener() {
@@ -353,6 +395,7 @@ public class FilterTableDemoUI extends UI {
         showFilters.setImmediate(true);
         showFilters.addValueChangeListener(new Property.ValueChangeListener() {
 
+            @Override
             public void valueChange(ValueChangeEvent event) {
                 relatedFilterTable.setFilterBarVisible((Boolean) event
                         .getProperty().getValue());
@@ -362,9 +405,50 @@ public class FilterTableDemoUI extends UI {
         buttonLayout.setComponentAlignment(showFilters, Alignment.MIDDLE_RIGHT);
         buttonLayout.setExpandRatio(showFilters, 1);
 
+        CheckBox wrapFilters = new CheckBox("Wrap Filter Fields");
+        wrapFilters.setValue(relatedFilterTable.isWrapFilters());
+        wrapFilters.setImmediate(true);
+        wrapFilters.addValueChangeListener(new Property.ValueChangeListener() {
+
+            @Override
+            public void valueChange(ValueChangeEvent event) {
+                relatedFilterTable.setWrapFilters((Boolean) event.getProperty()
+                        .getValue());
+            }
+        });
+        buttonLayout.addComponent(wrapFilters);
+        buttonLayout.setComponentAlignment(wrapFilters, Alignment.MIDDLE_RIGHT);
+
+        final Button runNow = new Button("Filter now");
+        runNow.addClickListener(new Button.ClickListener() {
+
+            @Override
+            public void buttonClick(ClickEvent event) {
+                relatedFilterTable.runFilters();
+            }
+        });
+
+        CheckBox runOnDemand = new CheckBox("Filter lazily");
+        runOnDemand.setValue(relatedFilterTable.isFilterOnDemand());
+        runNow.setEnabled(relatedFilterTable.isFilterOnDemand());
+        runOnDemand.setImmediate(true);
+        runOnDemand.addValueChangeListener(new ValueChangeListener() {
+
+            @Override
+            public void valueChange(ValueChangeEvent event) {
+                boolean value = (Boolean) event.getProperty().getValue();
+                relatedFilterTable.setFilterOnDemand(value);
+                runNow.setEnabled(value);
+            }
+        });
+        buttonLayout.addComponent(runOnDemand);
+        buttonLayout.setComponentAlignment(runOnDemand, Alignment.MIDDLE_RIGHT);
+        buttonLayout.addComponent(runNow);
+
         Button setVal = new Button("Set the State filter to 'Processed'");
         setVal.addClickListener(new Button.ClickListener() {
 
+            @Override
             public void buttonClick(ClickEvent event) {
                 relatedFilterTable
                         .setFilterFieldValue("state", State.PROCESSED);
@@ -375,6 +459,7 @@ public class FilterTableDemoUI extends UI {
         Button reset = new Button("Reset");
         reset.addClickListener(new Button.ClickListener() {
 
+            @Override
             public void buttonClick(ClickEvent event) {
                 relatedFilterTable.resetFilters();
             }
@@ -501,6 +586,7 @@ public class FilterTableDemoUI extends UI {
         toggle.setImmediate(true);
         toggle.addValueChangeListener(new Property.ValueChangeListener() {
 
+            @Override
             public void valueChange(ValueChangeEvent event) {
                 relatedFilterTable.setFilterFieldVisible(propId,
                         !relatedFilterTable.isFilterFieldVisible(propId));

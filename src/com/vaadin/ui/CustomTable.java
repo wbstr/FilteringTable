@@ -34,6 +34,8 @@ import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.tepi.filtertable.paged.PagedFilterTableContainer;
+
 import com.vaadin.data.Container;
 import com.vaadin.data.Item;
 import com.vaadin.data.Property;
@@ -2164,7 +2166,6 @@ public class CustomTable extends AbstractSelect implements Action.Container,
         if (items instanceof Container.Indexed) {
             // more efficient implementation for containers supporting access by
             // index
-
             List<?> itemIds = getItemIds(firstIndex, rows);
             for (int i = 0; i < rows && i < itemIds.size(); i++) {
                 Object id = itemIds.get(i);
@@ -2237,7 +2238,12 @@ public class CustomTable extends AbstractSelect implements Action.Container,
         if (headmode != ROW_HEADER_MODE_HIDDEN) {
             switch (headmode) {
             case INDEX:
-                cells[CELL_HEADER][i] = String.valueOf(i + firstIndex + 1);
+                int val = 0;
+                if (items != null && items instanceof PagedFilterTableContainer) {
+                    val = ((PagedFilterTableContainer) items).getStartIndex();
+                }
+                cells[CELL_HEADER][i] = String
+                        .valueOf(val + i + firstIndex + 1);
                 break;
             default:
                 try {
@@ -3958,7 +3964,16 @@ public class CustomTable extends AbstractSelect implements Action.Container,
      */
     private Object[][] getVisibleCells() {
         if (pageBuffer == null) {
-            refreshRenderedCells();
+            boolean isRefreshingEnabled = isContentRefreshesEnabled;
+            try {
+                enableContentRefreshing(false);
+                refreshRenderedCells();
+            } finally {
+                if (!isRefreshingEnabled) {
+                    disableContentRefreshing();
+                }
+            }
+
         }
         return pageBuffer;
     }
@@ -5058,8 +5073,8 @@ public class CustomTable extends AbstractSelect implements Action.Container,
         }
 
         @Override
-        public Table getSourceComponent() {
-            return (Table) super.getSourceComponent();
+        public CustomTable getSourceComponent() {
+            return (CustomTable) super.getSourceComponent();
         }
 
     }
@@ -5124,7 +5139,7 @@ public class CustomTable extends AbstractSelect implements Action.Container,
      */
     public static abstract class TableDropCriterion extends ServerSideCriterion {
 
-        private Table table;
+        private CustomTable table;
 
         private Set<Object> allowedItemIds;
 
@@ -5153,7 +5168,7 @@ public class CustomTable extends AbstractSelect implements Action.Container,
         public boolean accept(DragAndDropEvent dragEvent) {
             AbstractSelectTargetDetails dropTargetData = (AbstractSelectTargetDetails) dragEvent
                     .getTargetDetails();
-            table = (Table) dragEvent.getTargetDetails().getTarget();
+            table = (CustomTable) dragEvent.getTargetDetails().getTarget();
             Collection<?> visibleItemIds = table.getVisibleItemIds();
             allowedItemIds = getAllowedItemIds(dragEvent, table,
                     (Collection<Object>) visibleItemIds);
@@ -5195,7 +5210,7 @@ public class CustomTable extends AbstractSelect implements Action.Container,
          *         be accepted
          */
         protected abstract Set<Object> getAllowedItemIds(
-                DragAndDropEvent dragEvent, Table table,
+                DragAndDropEvent dragEvent, CustomTable table,
                 Collection<Object> visibleItemIds);
 
     }

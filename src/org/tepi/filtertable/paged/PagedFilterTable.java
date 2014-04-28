@@ -44,38 +44,44 @@ public class PagedFilterTable<T extends Container.Indexed & Container.Filterable
         addStyleName("pagedtable");
     }
 
-    public HorizontalLayout createControls() {
-        Label itemsPerPageLabel = new Label("Items per page:");
+    public HorizontalLayout createControls(PagedFilterControlConfig config) {
+        Label itemsPerPageLabel = new Label(config.getItemsPerPage(),
+                ContentMode.HTML);
         itemsPerPageLabel.setSizeUndefined();
         final ComboBox itemsPerPageSelect = new ComboBox();
 
-        itemsPerPageSelect.addItem("5");
-        itemsPerPageSelect.addItem("10");
-        itemsPerPageSelect.addItem("25");
-        itemsPerPageSelect.addItem("50");
-        itemsPerPageSelect.addItem("100");
-        itemsPerPageSelect.addItem("600");
+        for (Integer i : config.getPageLengths()) {
+            itemsPerPageSelect.addItem(i);
+            itemsPerPageSelect.setItemCaption(i, String.valueOf(i));
+        }
         itemsPerPageSelect.setImmediate(true);
         itemsPerPageSelect.setNullSelectionAllowed(false);
-        itemsPerPageSelect.setWidth("50px");
+        itemsPerPageSelect.setWidth(null);
         itemsPerPageSelect.addValueChangeListener(new ValueChangeListener() {
             private static final long serialVersionUID = -2255853716069800092L;
 
             @Override
             public void valueChange(
                     com.vaadin.data.Property.ValueChangeEvent event) {
-                setPageLength(Integer.valueOf(String.valueOf(event
-                        .getProperty().getValue())));
+                setPageLength((Integer) event.getProperty().getValue());
             }
         });
-        itemsPerPageSelect.select("25");
-        Label pageLabel = new Label("Page:&nbsp;", ContentMode.HTML);
+        if (itemsPerPageSelect.containsId(getPageLength())) {
+            itemsPerPageSelect.select(getPageLength());
+        } else {
+            itemsPerPageSelect.select(itemsPerPageSelect.getItemIds()
+                    .iterator().next());
+        }
+        Label pageLabel = new Label(config.getPage(), ContentMode.HTML);
         final TextField currentPageTextField = new TextField();
         currentPageTextField.setValue(String.valueOf(getCurrentPage()));
         currentPageTextField.setConverter(new StringToIntegerConverter() {
             @Override
             protected NumberFormat getFormat(Locale locale) {
-                return super.getFormat(UI.getCurrent().getLocale());
+                NumberFormat result = super.getFormat(UI.getCurrent()
+                        .getLocale());
+                result.setGroupingUsed(false);
+                return result;
             }
         });
         Label separatorLabel = new Label("&nbsp;/&nbsp;", ContentMode.HTML);
@@ -105,7 +111,7 @@ public class PagedFilterTable<T extends Container.Indexed & Container.Filterable
         HorizontalLayout controlBar = new HorizontalLayout();
         HorizontalLayout pageSize = new HorizontalLayout();
         HorizontalLayout pageManagement = new HorizontalLayout();
-        final Button first = new Button("<<", new ClickListener() {
+        final Button first = new Button(config.getFirst(), new ClickListener() {
             private static final long serialVersionUID = -355520120491283992L;
 
             @Override
@@ -113,15 +119,16 @@ public class PagedFilterTable<T extends Container.Indexed & Container.Filterable
                 setCurrentPage(0);
             }
         });
-        final Button previous = new Button("<", new ClickListener() {
-            private static final long serialVersionUID = -355520120491283992L;
+        final Button previous = new Button(config.getPrevious(),
+                new ClickListener() {
+                    private static final long serialVersionUID = -355520120491283992L;
 
-            @Override
-            public void buttonClick(ClickEvent event) {
-                previousPage();
-            }
-        });
-        final Button next = new Button(">", new ClickListener() {
+                    @Override
+                    public void buttonClick(ClickEvent event) {
+                        previousPage();
+                    }
+                });
+        final Button next = new Button(config.getNext(), new ClickListener() {
             private static final long serialVersionUID = -1927138212640638452L;
 
             @Override
@@ -129,7 +136,7 @@ public class PagedFilterTable<T extends Container.Indexed & Container.Filterable
                 nextPage();
             }
         });
-        final Button last = new Button(">>", new ClickListener() {
+        final Button last = new Button(config.getLast(), new ClickListener() {
             private static final long serialVersionUID = -355520120491283992L;
 
             @Override
@@ -197,6 +204,16 @@ public class PagedFilterTable<T extends Container.Indexed & Container.Filterable
                 Alignment.MIDDLE_CENTER);
         controlBar.setWidth(100, Unit.PERCENTAGE);
         controlBar.setExpandRatio(pageSize, 1);
+
+        if (container != null) {
+            first.setEnabled(container.getStartIndex() > 0);
+            previous.setEnabled(container.getStartIndex() > 0);
+            next.setEnabled(container.getStartIndex() < container.getRealSize()
+                    - getPageLength());
+            last.setEnabled(container.getStartIndex() < container.getRealSize()
+                    - getPageLength());
+        }
+
         addListener(new PageChangeListener() {
             private boolean inMiddleOfValueChange;
 
@@ -215,7 +232,7 @@ public class PagedFilterTable<T extends Container.Indexed & Container.Filterable
                     totalPagesLabel.setValue(Integer
                             .toString(getTotalAmountOfPages()));
                     itemsPerPageSelect
-                            .setValue(String.valueOf(getPageLength()));
+                            .setValue(getPageLength());
                     inMiddleOfValueChange = false;
                 }
             }

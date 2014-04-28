@@ -44,6 +44,10 @@ public class FilterTable extends CustomTable implements IFilterTable {
     private final boolean initDone;
     /* Force-render filter fields */
     private boolean reRenderFilterFields;
+    /* Wrap filters with additional div for styling? */
+    private boolean wrapFilters = false;
+    /* Are filters run immediately, or only on demand? */
+    private boolean filtersRunOnDemand = false;
 
     /**
      * Creates a new empty FilterTable
@@ -71,6 +75,7 @@ public class FilterTable extends CustomTable implements IFilterTable {
         target.startTag("filters");
         target.addAttribute("filtersvisible", filtersVisible);
         target.addAttribute("forceRender", reRenderFilterFields);
+        target.addAttribute("wrapFilters", wrapFilters);
         reRenderFilterFields = false;
         if (filtersVisible) {
             for (Object key : getColumnIdToFilterMap().keySet()) {
@@ -333,14 +338,52 @@ public class FilterTable extends CustomTable implements IFilterTable {
             }
         }
         super.setVisibleColumns(visibleColumns);
-        resetFilters();
     }
 
     @Override
     public void setRefreshingEnabled(boolean enabled) {
-        if (enabled)
+        if (enabled) {
             enableContentRefreshing(true);
-        else
+        } else {
             disableContentRefreshing();
+        }
     }
+
+    public void setWrapFilters(boolean wrapFilters) {
+        if (this.wrapFilters == wrapFilters) {
+            return;
+        } else {
+            this.wrapFilters = wrapFilters;
+            reRenderFilterFields = true;
+            markAsDirty();
+        }
+    }
+
+    public boolean isWrapFilters() {
+        return wrapFilters;
+    }
+
+    public void setFilterOnDemand(boolean filterOnDemand) {
+        if (filtersRunOnDemand == filterOnDemand) {
+            return;
+        } else {
+            filtersRunOnDemand = filterOnDemand;
+            reRenderFilterFields = true;
+            generator.setFilterOnDemandMode(filtersRunOnDemand);
+        }
+
+    }
+
+    public boolean isFilterOnDemand() {
+        return filtersRunOnDemand;
+    }
+
+    public void runFilters() {
+        if (!filtersRunOnDemand) {
+            throw new IllegalStateException(
+                    "Can't run filters on demand when filtersRunOnDemand is set to false");
+        }
+        generator.runFiltersNow();
+    }
+
 }
