@@ -49,7 +49,7 @@
 			<arg value="${webcontent.dir}/${webcontent.widgetset.dir}" />
 			<arg value="${addon.widgetset}" />
 			<arg value="-logLevel" />
-			<arg value="INFO" />
+			<arg value="TRACE" />
 			<jvmarg value="-Xss1024k" />
 			<jvmarg value="-Xmx1024M" />
 			<jvmarg value="-Djava.awt.headless=true" />
